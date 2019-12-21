@@ -4,21 +4,20 @@
 #include <QObject>
 #include <QGraphicsEllipseItem>
 #include "map.h"
-#include "game.h"
 #include <QTimer>
 
 class Pacman: public QObject, public QGraphicsEllipseItem{
     Q_OBJECT
 public:
     Pacman(int i, int j, Map* map);
+    ~Pacman();
     void check();
     int getx(){ return _x;}
     int gety(){ return _y;}
     QTimer* timer;
-    int points;
-    int nextDir;
+    bool powerful;
+//    int points;
     void keyPressEvent(QKeyEvent* event);
-
 public slots:
     void move();
     void change();
@@ -26,7 +25,7 @@ private:
     int _x;
     int _y;
     int pdir;
-    int state; // ==1 if consumed superball
+    int nextDir;
     bool canMove(int dir);
     Map* map;
 };

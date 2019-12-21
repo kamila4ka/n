@@ -5,13 +5,15 @@
 #include <QGraphicsRectItem>
 #include <QBrush>
 
+#define cellsize 30
+
 class Walls: public QObject, public QGraphicsRectItem{
     Q_OBJECT
 public:
     Walls(int i, int j){
-        setRect(i*30, j*30, 30,30);
+        setRect(i*cellsize, j*cellsize, cellsize,cellsize);
         QBrush brush;
-        brush.setColor(Qt::blue);
+        brush.setColor(Qt::darkBlue);
         brush.setStyle(Qt::SolidPattern);
         setBrush(brush);
     }

@@ -5,22 +5,32 @@
 #include <QDebug>
 #include <QColor>
 #include <queue>
+#include "game.h"
+
+#define cellsize 30
+#define step 10
+
 
 using namespace std;
 
 extern Game* game;
 
-Ghost::Ghost(int i, int j, int color, Map* map, Pacman* pacman): QGraphicsRectItem(i*30, j*30, 30, 30){
+Ghost::~Ghost(){
+    delete timer;
+}
+Ghost::Ghost(int i, int j, int color, int lvl, Map* map, Pacman* pacman):
+    QGraphicsRectItem(i*cellsize, j*cellsize, cellsize, cellsize){
+    homeX=_x=i*cellsize;
+    homeY=_y=j*cellsize;
     this->map=map;
+    this->lvl=lvl;
     pac=pacman;
-
-    _x=i*30; _y=j*30;
-    _dir=0;
+    dir=0;
     QBrush brush;
     color=color%4+1;
     switch(color){
         case 1:
-            brush.setColor(Qt::red);
+            brush.setColor(Qt::green);
             break;
         case 2:
             brush.setColor(Qt::cyan);
@@ -35,107 +45,180 @@ Ghost::Ghost(int i, int j, int color, Map* map, Pacman* pacman): QGraphicsRectIt
     brush.setStyle(Qt::SolidPattern);
     setBrush(brush);
     count=0;
-    timer=new QTimer();
+    timer=new QTimer(this);
     connect(timer,SIGNAL(timeout()),this,SLOT(update()));
     timer->start(100);
+
+    scared=false;
 }
 
 void Ghost::update(){
-
-    if(!(_x/30==pac->getx()/30 && _y/30==pac->gety()/30)){
-        if(count%3==0){
-            setDirection();
+    QList<QGraphicsItem*> colliding_items = collidingItems();
+    for (int i = 0, n = colliding_items.size(); i < n; ++i){
+        if (typeid(*(colliding_items[i])) == typeid(Pacman)){
+            if(pac->powerful){
+                int idx = game->ghosts.indexOf(this);
+                game->ghosts.remove(idx);
+                delete colliding_items[i];
+            }
+            else{
+                game->stats->decreaseHealth();
+                _x=homeX;
+                _y=homeY;
+                dir=0;
+                setPos(0,0);
+            }
         }
-        move();
     }
-    ++count;
+    if(abs(_x/30 - pac->getx()/30) + abs(_y/30 - pac->gety()/30) < 3+lvl*4){
+        if(scared){
+            runAway();
+        }
+        else{
+            if(count% (cellsize/step)==0){
+                setDirection(); // found pacman
+            }
+            ++count;
+        }
+    }
+    else{
+        count=0;
+        if(!canMove(dir)){
+            setRandomDirection();
+        }
+    }
+    move();
+}
+
+void Ghost::setRandomDirection(){    
+    srand(time(nullptr));
+    dir=(rand()%1003) %4 + 1;
+    while(!canMove(dir)){
+        ++dir;
+        if(dir>4){
+            dir-=4;
+        }
+    }
+}
+
+void Ghost::runAway(){
+   int maxDir=0; int maxDist=0;
+   int pX=pac->getx()/30; int pY=pac->gety()/30;
+   int nX; int nY;
+   nX=_x/30-1; nY=_y/30;
+   if(abs(nX-pX)+abs(nY-pY) > maxDist
+      && canMove(1)){
+       maxDist = abs(nX-pX)+abs(nY-pY);
+       maxDir=1;
+   }
+   nX+=2;
+   if(abs(nX-pX)+abs(nY-pY) > maxDist
+      && canMove(2)){
+       maxDist = abs(nX-pX)+abs(nY-pY);
+       maxDir=2;
+   }
+   --nX; ++nY;
+   if(abs(nX-pX)+abs(nY-pY) > maxDist
+      && canMove(3)){
+       maxDist = abs(nX-pX)+abs(nY-pY);
+       maxDir=3;
+   }
+   nY-=2;
+   if(abs(nX-pX)+abs(nY-pY) > maxDist
+      && canMove(4)){
+       maxDist = abs(nX-pX)+abs(nY-pY);
+       maxDir=4;
+   }
+   dir=maxDir;
 }
 
 void Ghost::setDirection(){
-    Node ghost((_x)/30,(_y)/30);
-    Node pacman(pac->getx()/30, pac->gety()/30);
-    _dir=Dkstra(ghost, pacman);
+    Node ghost((_x)/cellsize,(_y)/cellsize);
+    Node pacman(pac->getx()/cellsize, pac->gety()/cellsize);
+    dir=Dkstra(ghost, pacman);
 }
-/*if(!moving)
- * setDirection;
- * if(moving)
- * if(canMove(currentDirection))
-    keepMoving;
-  else
-    setDirection;
-*/
 
-//bool Ghost::canMove(){
-//    switch (_dir) {
-//    case 1:
-//        if(_x-10<0 && _y %30 == 0)
-//            return true;
-//        if(map->map[(_x-10)/30][_y/30]!=1
-//                && _y %30 == 0)
-//            return true;
-//        return false;
-//    case 2:
-//        if(560-30-_x<=0)
-//            return true;
-//        if(map->map[(_x+40)/30][_y/30]!=1)
-//            return true;
-//        return false;
-//    case 3:
-//        if(map->map[_x/30][(_y-10)/30]!=1)
-//            return true;
-//        return false;
-//    case 4:
-//        if(map->map[_x/30][(_y+40)/30]!=1)
-//            return true;
-//        return false;
-//    }
-//}
+bool Ghost::canMove(int newDir){
+    switch (newDir) {
+    case 0:
+        return false;
+
+    case 1:
+        if(_x-step<0)
+            return true;
+        if(map->map[(_x-step)/cellsize][_y/cellsize]!='w'&& (_y%cellsize==0) )
+            return true;
+        return false;
+    case 2:
+        if(570 - step - cellsize - _x<=0)
+            return true;
+        if(map->map[(_x + cellsize + step-1)/cellsize][_y/cellsize]!='w' && (_y%cellsize==0))
+            return true;
+        return false;
+    case 3:
+        if(map->map[_x/cellsize][(_y-step)/cellsize]!='w' && _x%cellsize == 0)
+            return true;
+        return false;
+    case 4:
+        if(map->map[_x/cellsize][(_y + cellsize + step-1)/cellsize]!='w' && _x%cellsize == 0)
+            return true;
+        return false;
+    default:
+        return false;
+    }
+}
 
 
 void Ghost::move(){
 
+    switch (dir) {
 
-    if(!(_x/30==int(x())/30 && _y/30==int(y()))/30){
-        qDebug() << "HUITA";
-    }
-    switch (_dir) {
-    case 0: break;
-    case 1://left
-        if ((_x-10)<0) {
-            setX(x()+570);
-            _x=570-10+_x;
-        }
-        else{
-                setX(x()-10);
-                _x-=10;
-        }
-        break;
+        case 1:
+            if ((_x-step)<0) {
+                setX(x()+560);
+                _x=560+_x;
+            }
+            else{
+                if(canMove(1)){
+                    setX(x()-step);
+                    _x-=step;
+                }
+            }
 
-    case 2:
-        if ((560-30-_x)<=0 /*&& (_y%30 == 0)*/) {
-            setX(x()-560+10);
-            _x=_x-560+10;
-        }
-        else{
-            setX(x()+10);
-            _x+=10;
-        }
-        break;
+            break;
 
-    case 3:
-        setY(y()-10);
-        _y-=10;        
-        break;
-    case 4:
-        setY(y()+10);
-        _y+=10;
-        break;
-    }
+        case 2:
+            if ((560-cellsize-_x)<=0) {
+                setX(x()-550);
+                _x=_x-550;
+            }
+            else{
+                if(canMove(2)){
+                    setX(x()+step);
+                    _x+=step;
+                    }
+                }
+            break;
+
+        case 3:
+            if(canMove(3)){
+                setY(y()-step);
+                _y-=step;
+            }
+            break;
+
+        case 4:
+            if(canMove(4)){
+                setY(y()+step);
+                _y+=step;
+            }
+            break;
+        }
 }
 
 
 
-void Ghost::makePath(std::array<std::array<Node, 21>,19> graph,QVector<Node>& path, Node current, Node goal){
+void Ghost::makePath(std::array<std::array<Node, 21>,19> graph, QVector<Node>& path, Node goal){
     Node it;
     for(it=graph[goal.x][goal.y]; !(it.parentX==0&&it.parentY==0) ; it=graph[it.parentX][it.parentY]){
         path.push_back(it);
@@ -154,9 +237,9 @@ int Ghost::Dkstra(Node player, Node goal) {
             graph[i][j].parentX=graph[i][j].parentY=0;
         }
     }
-    graph[_x/30][_y/30].distance=0;
-    graph[_x/30][_y/30].parentX=graph[_x/30][_y/30].parentY=0;
-    Node current=graph[_x/30][_y/30];
+    graph[_x/cellsize][_y/cellsize].distance=0;
+    graph[_x/cellsize][_y/cellsize].parentX=graph[_x/cellsize][_y/cellsize].parentY=0;
+    Node current=graph[_x/cellsize][_y/cellsize];
     queue<Node> frontier;
     frontier.push(current);
     int count=0;
@@ -214,7 +297,7 @@ int Ghost::Dkstra(Node player, Node goal) {
         }      
     }
     QVector<Node> path;
-    makePath(graph, path, graph[_x/30][_y/30], goal);
+    makePath(graph, path, goal);
     int dir=0;
     if(!path.isEmpty()){
         Node next = path.back();

@@ -29,10 +29,10 @@ public:
     bool isGameLost();
     bool isGameWon();
 
-    int pointsCounter;
-    int ghostCounter;
     Stats* stats;
-
+    QVector<Ghost*> ghosts;
+    QVector<Coins*> coins;
+    QVector<Powerball*> pbs;
 public slots:
     void check();
     void nextLevel();
@@ -47,9 +47,7 @@ private:
     Map* map;
     Pacman* pac;
     Button* button;
-    QVector<Ghost*> ghosts;
-    QVector<Coins*> coins;
-    QVector<Powerball*> pbs;
+
     QVector<Walls*> walls;
     QTimer* timer;
     QGraphicsView* view;

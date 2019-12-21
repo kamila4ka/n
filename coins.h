@@ -4,9 +4,11 @@
 #include <QGraphicsEllipseItem>
 #include <QBrush>
 
+#define cellsize 30
+
 class Coins: public QGraphicsEllipseItem{
 public:
-        Coins(int i, int j): QGraphicsEllipseItem(i*30+14, j*30+14, 3, 3){
+        Coins(int i, int j): QGraphicsEllipseItem(i*cellsize+14, j*cellsize+14, 3, 3){
         //setPos(x()+14, y()+14);
         QBrush brush;
         brush.setColor(Qt::yellow);

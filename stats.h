@@ -5,11 +5,12 @@
 class Stats: public QGraphicsTextItem
 {
 public:
-    Stats(int savedScore);
+    Stats(int savedScore, int lvl);
     void decreaseHealth();
     void increaseScore(int sc);
     int lives;
     int score;
+    int lvl;
 };
 
 #endif // STATS_H

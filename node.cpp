@@ -29,7 +29,7 @@ void Node::assignParent(Node newParent){
 }
 
 bool Node::isAWall(Map* map){
-    return map->map[x][y];
+    return map->map[x][y]=='w';
 }
 
 bool Node::isToTheLeft(const Node& node){

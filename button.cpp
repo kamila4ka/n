@@ -3,22 +3,21 @@
 #include <QTimer>
 #include <QFont>
 
+#define screensize 800
+
 Button::Button(QString name){
-    setRect(0,0,400,100);
+    setRect(screensize/4, screensize/3, screensize/2, screensize/3);
     QBrush brush;
     brush.setStyle(Qt::SolidPattern);
     brush.setColor(Qt::darkBlue);
     setBrush(brush);
     // draw the text
     text = new QGraphicsTextItem(name,this);
-    int xPos = rect().width()/2 - text->boundingRect().width()/2;
-    int yPos = rect().height()/2 - text->boundingRect().height()/2;
+    int xPos = 330;
+    int yPos = 360;
     text->setPos(xPos,yPos);
     text->setDefaultTextColor(Qt::white);
     text->setFont(QFont("times",30));
-//    QTimer* btimer =new QTimer();
-//    connect(btimer,SIGNAL(timeout()),this,SLOT(deleteButton()));
-//    btimer->start(2000);
 }
 
 
